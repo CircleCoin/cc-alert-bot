@@ -22,7 +22,7 @@
     "serve-debug": "nodemon --inspect dist/index.js",
     "watch-debug": "concurrently -k -p \"[{name}]\" -n \"TypeScript,Node\" -c \"yellow.bold,cyan.bold,green.bold\" \"npm run watch-ts\" \"npm run serve-debug\""
   },
-  "main": "build/index.js",
+  "main": "dist/index.js",
   "jest": {
     "globals": {
       "__TS_CONFIG__": "tsconfig.json"
