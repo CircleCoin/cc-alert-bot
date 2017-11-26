@@ -43,6 +43,7 @@
     "dotenv": "^2.0.0",
     "errorhandler": "^1.4.3",
     "express": "^4.14.0",
+    "gdax": "github:coinbase/gdax-node",
     "morgan": "^1.7.0",
     "pug": "^2.0.0-beta6",
     "request": "^2.78.0"
