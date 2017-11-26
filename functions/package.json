@@ -9,18 +9,20 @@
   "author": "Javier Tarazaga",
   "license": "MIT",
   "scripts": {
-    "start": "npm run build && npm run watch",
+    "start": "npm run build && firebase serve --only functions:dialogflowFirebaseFulfillment",
+    "deploy": "npm run build && firebase deploy --only functions:dialogflowFirebaseFulfillment",
     "build": "npm run build-ts && npm run tslint",
-    "serve": "nodemon dist/server.js",
+    "serve": "nodemon dist/index.js",
     "watch": "concurrently -k -p \"[{name}]\" -n \"TypeScript,Node\" -c \"yellow.bold,cyan.bold,green.bold\" \"npm run watch-ts\" \"npm run serve\"",
     "test": "jest --forceExit",
     "build-ts": "tsc",
     "watch-ts": "tsc -w",
-    "tslint": "tslint -c tslint.json -p tsconfig.json",
+    "tslint": "node_modules/.bin/tslint -c tslint.json -p tsconfig.json",
     "debug": "npm run build && npm run watch-debug",
-    "serve-debug": "nodemon --inspect dist/server.js",
+    "serve-debug": "nodemon --inspect dist/index.js",
     "watch-debug": "concurrently -k -p \"[{name}]\" -n \"TypeScript,Node\" -c \"yellow.bold,cyan.bold,green.bold\" \"npm run watch-ts\" \"npm run serve-debug\""
   },
+  "main": "build/index.js",
   "jest": {
     "globals": {
       "__TS_CONFIG__": "tsconfig.json"
@@ -38,13 +40,17 @@
     "testEnvironment": "node"
   },
   "dependencies": {
+    "actions-on-google": "^1.5.x",
+    "apiai": "^4.0.3",
     "async": "^2.1.2",
     "body-parser": "^1.15.2",
     "dotenv": "^2.0.0",
     "errorhandler": "^1.4.3",
     "express": "^4.14.0",
-    "gdax": "github:coinbase/gdax-node",
+    "firebase-admin": "^5.2.1",
+    "firebase-functions": "^0.7.3",
     "morgan": "^1.7.0",
+    "node-telegram-bot-api": "^0.29.0",
     "pug": "^2.0.0-beta6",
     "request": "^2.78.0"
   },
