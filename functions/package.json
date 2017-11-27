@@ -9,7 +9,7 @@
   "author": "Javier Tarazaga",
   "license": "MIT",
   "scripts": {
-    "start": "npm run build && firebase serve --only functions:dialogflowFirebaseFulfillment",
+    "start": "concurrently -k -p \"[{name}]\" -n \"TypeScript,Node\" -c \"yellow.bold,cyan.bold,green.bold\" \"npm run watch-ts\" \"firebase serve --only functions:dialogflowFirebaseFulfillment\" ",
     "deploy": "npm run build && firebase deploy --only functions:dialogflowFirebaseFulfillment",
     "build": "npm run build-ts && npm run tslint",
     "serve": "nodemon dist/index.js",
