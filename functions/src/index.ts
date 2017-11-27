@@ -1,6 +1,7 @@
 import * as requestService from "request";
 import * as express from "express";
 import { Request, Response } from "express";
+import { format } from "path";
 
 const functions = require("firebase-functions"); // Cloud Functions for Firebase library
 const DialogflowApp = require("actions-on-google").DialogflowApp; // Google Assistant helper library
@@ -36,14 +37,14 @@ function processRequest (request: Request, response: Response) {
   const actionHandlers: any = {
     // The default welcome intent has been matched, welcome the user (https://dialogflow.com/docs/events#default_welcome_intent)
     "input.welcome": () => {
-      sendResponse("Hello, Welcome to my Dialogflow agent!"); // Send simple response to user
+      sendResponse("Hi! My name is Cleo and I am your personal trading broker 🤓. First of all, lets get to know each other. What is your name?");
     },
     // The default fallback intent has been matched, try to recover (https://dialogflow.com/docs/intents#fallback_intents)
     "input.unknown": () => {
       // Use the Actions on Google lib to respond to Google requests; for other requests use JSON
       sendResponse("I'm having trouble, can you try that again?"); // Send simple response to user
     },
-    "input.eth": () => {
+    "input.ethereum": () => {
       // requestService.get("https://api.coinmarketcap.com/v1/ticker/ethereum/?convert=EUR")
       // .on("response", function (response: Response) {
       //   console.log(response.statusCode); // 200
@@ -59,25 +60,59 @@ function processRequest (request: Request, response: Response) {
       requestService("https://api.coinmarketcap.com/v1/ticker/ethereum/?convert=EUR", function (error: Error, response: Response, body: Body) {
         // console.log(JSON.parse(body.toString()).price_eur);
 
-        const change24h = JSON.parse(body.toString())[0].percent_change_24h;
-        const price_eur = JSON.parse(body.toString())[0].price_eur;
+        const symbol = JSON.parse(body.toString())[0].symbol;
+        const percent_change_1h = formatPercent(JSON.parse(body.toString())[0].percent_change_1h);
+        const change24h = formatPercent(JSON.parse(body.toString())[0].percent_change_24h);
+        const price_eur: string = formatNumber(+JSON.parse(body.toString())[0].price_eur);
+        const market_cap_eur: string = formatNumber(+JSON.parse(body.toString())[0].market_cap_eur, 0);
 
-        let change: string;
-        change24h > 0 ? change = "+" + change24h : change = "-" + change24h;
+        const responseToUser = {
+          fulfillmentMessages: [{
+            "platform": "TELEGRAM",
+            "card": {
+              "title": `#${symbol}`,
+              "subtitle": `€${price_eur}\n${percent_change_1h} in 1 hour\n${change24h} in 24 hours\nMarket cap: €${market_cap_eur}\n`,
+              "buttons": [
+                {
+                  "text": "Gdax",
+                  "postback": "https://www.gdax.com"
+                },
+                {
+                  "text": "Bitfinex",
+                  "postback": "https://www.bitfinex.com/"
+                }
+              ]
+            }
+          }]
+        };
 
-        sendResponse(`<b>${price_eur}</b><br/>${change}`);
+        sendResponse(responseToUser);
       });
     },
     // Default handler for unknown or undefined actions
     "default": () => {
       const responseToUser = {
-        // fulfillmentMessages: richResponsesV2, // Optional, uncomment to enable
+        fulfillmentMessages: richResponsesV2, // Optional, uncomment to enable
         // outputContexts: [{ 'name': `${session}/contexts/weather`, 'lifespanCount': 2, 'parameters': {'city': 'Rome'} }], // Optional, uncomment to enable
         fulfillmentText: "This is from Dialogflow's Cloud Functions for Firebase editor! :-)" // displayed response
       };
       sendResponse(responseToUser);
     }
   };
+
+  function getCryptocurrencyInfo() {
+
+  }
+
+  function formatNumber(number: number, minimumFractionDigits?: number): string {
+    return (number).toLocaleString("en-us", {minimumFractionDigits: minimumFractionDigits});
+  }
+
+  function formatPercent(percent: number): string {
+    let percentFormatted: string;
+    percent > 0 ? percentFormatted = `+${percent}%` : percentFormatted = `+${percent}%`;
+    return percentFormatted;
+  }
 
   // If undefined or unknown action use the default handler
   if (!actionHandlers[action]) {
@@ -116,13 +151,16 @@ function processRequest (request: Request, response: Response) {
 }
 
 const richResponseV2Card = {
-  "title": "Title: this is a title",
-  "subtitle": "This is an subtitle.  Text can include unicode characters including emoji 📱.",
-  "imageUri": "https://developers.google.com/actions/images/badges/XPM_BADGING_GoogleAssistant_VER.png",
+  "title": "#ETH",
+  "subtitle": "24%\n",
   "buttons": [
     {
-      "text": "This is a button",
-      "postback": "https://assistant.google.com/"
+      "text": "Gdax",
+      "postback": "https://www.gdax.com"
+    },
+    {
+      "text": "Bitfinex",
+      "postback": "https://www.bitfinex.com/"
     }
   ]
 };
@@ -156,6 +194,10 @@ const richResponsesV2 = [
         }
       ]
     }
+  },
+  {
+    "platform": "TELEGRAM",
+    "card": richResponseV2Card
   },
   {
     "platform": "FACEBOOK",
