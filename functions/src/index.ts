@@ -21,7 +21,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request: Requ
 /*
 * Function to handle v2 webhook requests from Dialogflow
 */
-function processRequest (request: Request, response: Response) {
+function processRequest(request: Request, response: Response) {
   // An action is a string used to identify what needs to be done in fulfillment
   let action = (request.body.queryResult.action) ? request.body.queryResult.action : "default";
   // Parameters are any entites that Dialogflow has extracted from the request.
@@ -44,55 +44,13 @@ function processRequest (request: Request, response: Response) {
       // Use the Actions on Google lib to respond to Google requests; for other requests use JSON
       sendResponse("I'm having trouble, can you try that again?"); // Send simple response to user
     },
-    "input.ethereum": () => {
-      // requestService.get("https://api.coinmarketcap.com/v1/ticker/ethereum/?convert=EUR")
-      // .on("response", function (response: Response) {
-      //   console.log(response.statusCode); // 200
-      //   const apiResponse: any = response;
-      //   console.log(apiResponse);
-      //   const priceEuro = apiResponse.price_eur;
-      //   sendResponse(priceEuro);
-      // })
-      // .on("error", function(err: Error) {
-      //   console.log(err);
-      //   sendResponse("Ups, something went wrong. Please try again!");
-      // });
-      requestService("https://api.coinmarketcap.com/v1/ticker/ethereum/?convert=EUR", function (error: Error, response: Response, body: Body) {
-        // console.log(JSON.parse(body.toString()).price_eur);
-
-        const symbol = JSON.parse(body.toString())[0].symbol;
-        const percent_change_1h = formatPercent(JSON.parse(body.toString())[0].percent_change_1h);
-        const change24h = formatPercent(JSON.parse(body.toString())[0].percent_change_24h);
-        const price_eur: string = formatNumber(+JSON.parse(body.toString())[0].price_eur);
-        const market_cap_eur: string = formatNumber(+JSON.parse(body.toString())[0].market_cap_eur, 0);
-
-        const responseToUser = {
-          fulfillmentMessages: [{
-            "platform": "TELEGRAM",
-            "card": {
-              "title": `#${symbol}`,
-              "subtitle": `€${price_eur}\n${percent_change_1h} in 1 hour\n${change24h} in 24 hours\nMarket cap: €${market_cap_eur}\n`,
-              "buttons": [
-                {
-                  "text": "Gdax",
-                  "postback": "https://www.gdax.com"
-                },
-                {
-                  "text": "Bitfinex",
-                  "postback": "https://www.bitfinex.com/"
-                }
-              ]
-            }
-          }]
-        };
-
-        sendResponse(responseToUser);
-      });
+    "input.crypto-currency": () => {
+      getCryptocurrencyInfo(parameters.currency);
     },
     // Default handler for unknown or undefined actions
     "default": () => {
       const responseToUser = {
-        fulfillmentMessages: richResponsesV2, // Optional, uncomment to enable
+        // fulfillmentMessages: richResponsesV2, // Optional, uncomment to enable
         // outputContexts: [{ 'name': `${session}/contexts/weather`, 'lifespanCount': 2, 'parameters': {'city': 'Rome'} }], // Optional, uncomment to enable
         fulfillmentText: "This is from Dialogflow's Cloud Functions for Firebase editor! :-)" // displayed response
       };
@@ -100,17 +58,66 @@ function processRequest (request: Request, response: Response) {
     }
   };
 
-  function getCryptocurrencyInfo() {
+  function getCryptocurrencyInfo(currencyName: string) {
+    console.log(currencyName);
 
+    requestService.get(`https://api.coinmarketcap.com/v1/ticker/${currencyName}/?convert=EUR`)
+      .on("data", function (data: string) {
+        console.log(response.statusCode); // 200
+
+        const symbol = JSON.parse(data.toString())[0].symbol;
+        const percent_change_1h = formatPercent(JSON.parse(data.toString())[0].percent_change_1h);
+        const change24h = formatPercent(JSON.parse(data.toString())[0].percent_change_24h);
+        const price_eur: string = formatNumber(+JSON.parse(data.toString())[0].price_eur);
+        const market_cap_eur: string = formatNumber(+JSON.parse(data.toString())[0].market_cap_eur, 0);
+
+        const card = {
+          "title": `#${symbol}`,
+          "subtitle": `€${price_eur}\n${percent_change_1h} in 1 hour\n${change24h} in 24 hours\nMarket cap: €${market_cap_eur}\n`,
+          "buttons": [
+            {
+              "text": "Gdax",
+              "postback": "https://www.gdax.com"
+            },
+            {
+              "text": "Bitfinex",
+              "postback": "https://www.bitfinex.com/"
+            }
+          ]
+        };
+
+        const responseToUser = {
+          fulfillmentMessages: [
+            {
+              "platform": "TELEGRAM",
+              "card": card
+            },
+            {
+              "platform": "FACEBOOK",
+              "card": card
+            },
+            {
+              "platform": "SLACK",
+              "card": card
+            }
+          ]
+        };
+
+        sendResponse(responseToUser);
+      })
+      .on("error", function (err: Error) {
+        console.log(err);
+        sendResponse("Ups, something went wrong. Please try again!");
+      });
   }
 
   function formatNumber(number: number, minimumFractionDigits?: number): string {
-    return (number).toLocaleString("en-us", {minimumFractionDigits: minimumFractionDigits});
+    return (number).toLocaleString("en-us", { minimumFractionDigits: minimumFractionDigits });
   }
 
   function formatPercent(percent: number): string {
     let percentFormatted: string;
-    percent > 0 ? percentFormatted = `+${percent}%` : percentFormatted = `+${percent}%`;
+    percent > 0 ? percentFormatted = `+${percent}%` : percentFormatted = `${percent}%`;
     return percentFormatted;
   }
 
@@ -123,10 +130,10 @@ function processRequest (request: Request, response: Response) {
   actionHandlers[action]();
 
   // Function to send correctly formatted responses to Dialogflow which are then sent to the user
-  function sendResponse (responseToUser: any) {
+  function sendResponse(responseToUser: any) {
     // if the response is a string send it as a response to the user
     if (typeof responseToUser === "string") {
-      const responseJson = {fulfillmentText: responseToUser}; // displayed response
+      const responseJson = { fulfillmentText: responseToUser }; // displayed response
       response.json(responseJson); // Send response to Dialogflow
     } else {
       // If the response to the user includes rich responses or contexts send them to Dialogflow
@@ -149,62 +156,3 @@ function processRequest (request: Request, response: Response) {
     }
   }
 }
-
-const richResponseV2Card = {
-  "title": "#ETH",
-  "subtitle": "24%\n",
-  "buttons": [
-    {
-      "text": "Gdax",
-      "postback": "https://www.gdax.com"
-    },
-    {
-      "text": "Bitfinex",
-      "postback": "https://www.bitfinex.com/"
-    }
-  ]
-};
-const richResponsesV2 = [
-  {
-    "platform": "ACTIONS_ON_GOOGLE",
-    "simple_responses": {
-      "simple_responses": [
-        {
-          "text_to_speech": "Spoken simple response",
-          "display_text": "Displayed simple response"
-        }
-      ]
-    }
-  },
-  {
-    "platform": "ACTIONS_ON_GOOGLE",
-    "basic_card": {
-      "title": "Title: this is a title",
-      "subtitle": "This is an subtitle.",
-      "formatted_text": "Body text can include unicode characters including emoji 📱.",
-      "image": {
-        "image_uri": "https://developers.google.com/actions/images/badges/XPM_BADGING_GoogleAssistant_VER.png"
-      },
-      "buttons": [
-        {
-          "title": "This is a button",
-          "open_uri_action": {
-            "uri": "https://assistant.google.com/"
-          }
-        }
-      ]
-    }
-  },
-  {
-    "platform": "TELEGRAM",
-    "card": richResponseV2Card
-  },
-  {
-    "platform": "FACEBOOK",
-    "card": richResponseV2Card
-  },
-  {
-    "platform": "SLACK",
-    "card": richResponseV2Card
-  }
-];
