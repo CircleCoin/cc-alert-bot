@@ -37,7 +37,7 @@ function processRequest(request: Request, response: Response) {
   const actionHandlers: any = {
     // The default welcome intent has been matched, welcome the user (https://dialogflow.com/docs/events#default_welcome_intent)
     "input.welcome": () => {
-      sendResponse("Hi! My name is Cleo and I am your personal trading broker 🤓. First of all, lets get to know each other. What is your name?");
+      sendResponse("Hi! My name is Cleo and I am your personal crypto trading broker 🤓 \n\nWe can start by checking some crypto currency information.\n\nPer example, type ethereum");
     },
     // The default fallback intent has been matched, try to recover (https://dialogflow.com/docs/intents#fallback_intents)
     "input.unknown": () => {
