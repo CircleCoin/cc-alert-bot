@@ -6,6 +6,8 @@ import { format } from "path";
 const functions = require("firebase-functions"); // Cloud Functions for Firebase library
 const DialogflowApp = require("actions-on-google").DialogflowApp; // Google Assistant helper library
 
+import * as Screen from "./screen";
+
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request: Request, response: Response) => {
   console.log("Dialogflow Request headers: " + JSON.stringify(request.headers));
   console.log("Dialogflow Request body: " + JSON.stringify(request.body));
@@ -37,7 +39,7 @@ function processRequest(request: Request, response: Response) {
   const actionHandlers: any = {
     // The default welcome intent has been matched, welcome the user (https://dialogflow.com/docs/events#default_welcome_intent)
     "input.welcome": () => {
-      sendResponse("Hi! My name is Cleo and I am your personal crypto trading broker 🤓 \n\nWe can start by checking some crypto currency information.\n\nPer example, type ethereum");
+      sendResponse("Hi! My name is Cleo and I am your personal crypto trading broker 🤓 \n\nWe can start by checking some crypto currency information.\nPer example, type ethereum");
     },
     // The default fallback intent has been matched, try to recover (https://dialogflow.com/docs/intents#fallback_intents)
     "input.unknown": () => {
@@ -46,6 +48,15 @@ function processRequest(request: Request, response: Response) {
     },
     "input.crypto-currency": () => {
       getCryptocurrencyInfo(parameters.currency);
+    },
+    "input.home": () => {
+      sendPayload(Screen.home);
+    },
+    "input.change-language": () => {
+      sendPayload(Screen.changeLanguage);
+    },
+    "input.settings": () => {
+      sendPayload(Screen.settings);
     },
     // Default handler for unknown or undefined actions
     "default": () => {
@@ -73,7 +84,7 @@ function processRequest(request: Request, response: Response) {
 
         const card = {
           "title": `#${symbol}`,
-          "subtitle": `€${price_eur}\n${percent_change_1h} in 1 hour\n${change24h} in 24 hours\nMarket cap: €${market_cap_eur}\n`,
+          "subtitle": `€${price_eur}\n${percent_change_1h} **in** 1 hour\n${change24h} in 24 hours\nMarket cap: €${market_cap_eur}\n`,
           "buttons": [
             {
               "text": "Gdax",
@@ -90,14 +101,6 @@ function processRequest(request: Request, response: Response) {
           fulfillmentMessages: [
             {
               "platform": "TELEGRAM",
-              "card": card
-            },
-            {
-              "platform": "FACEBOOK",
-              "card": card
-            },
-            {
-              "platform": "SLACK",
               "card": card
             }
           ]
@@ -128,6 +131,21 @@ function processRequest(request: Request, response: Response) {
 
   // Run the proper handler function to handle the request from Dialogflow
   actionHandlers[action]();
+
+  function sendPayload(response: any) {
+    const responseToUser = {
+      fulfillmentMessages: [
+        {
+          "platform": "TELEGRAM",
+          "payload": {
+            "telegram": response
+          }
+        }
+      ]
+    };
+
+    sendResponse(responseToUser);
+  }
 
   // Function to send correctly formatted responses to Dialogflow which are then sent to the user
   function sendResponse(responseToUser: any) {
